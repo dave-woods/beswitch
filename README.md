@@ -11,7 +11,7 @@ Usage is as with any Babel Plugin. For example:
 const babel = require('babel-core')
 const beswitch = require('./babel-plugin-beswitch.js')
 
-const input = getSourceCode() // Source code (as plaintext) to be transformed
+const input = getSourceCode() // Source code to be transformed (as plaintext)
 const output = babel.transform(input, {
 	plugins: [beswitch]
 }).code // Transformed code (as plaintext)
@@ -39,35 +39,35 @@ switch (key) {
 ```
 ...which is transformed into...
 ```javascript
-const key = 'whatever';
+const key = 'whatever'
 
 window.beswitch({
   0: () => { doThing() },
   1: () => { doSecondThing() },
   'other': () => { doOtherThing() }
-})(() => { doDefaultThing() })(key);
+})(() => { doDefaultThing() })(key)
 ```
 
 A more complex example, inside a function, with returns and fall-throughs:
 ```javascript
 const beswitchedFn = key => {
-  let result;
+  let result
   switch (key) {
     case 0:
     case 1:
-      doNothing();
-      result = 'first';
-      break;
+      doNothing()
+      result = 'first'
+      break
     case 'other':
-      result = 'second';
-      break;
+      result = 'second'
+      break
     case 'early':
     case 'also early':
       return 'quit early'
     case 'log':
       console.log('thing')
     default:
-      result = 'third';
+      result = 'third'
     case 'nothing':
   }
 
@@ -79,13 +79,13 @@ const beswitchedFn = key => {
 ...which is transformed into...
 ```javascript
 const beswitchedFn = key => {
-  let result;
-  let beswitchObj;
+  let result
+  let beswitchObj
 
   const beswitchVal = window.beswitch(beswitchObj = {
     0: () => { return beswitchObj[1]() },
     1: () => {
-	  doNothing()
+      doNothing()
       result = 'first'
     },
     'other': () => { result = 'second' },
@@ -93,7 +93,7 @@ const beswitchedFn = key => {
     'also early': () => { return 'quit early' },
     'log': () => { console.log('thing') },
     'nothing': () => {}
-  })(() => { result = 'third' })(key);
+  })(() => { result = 'third' })(key)
 
   if (beswitchVal) {
     return beswitchVal
