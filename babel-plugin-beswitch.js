@@ -1,18 +1,21 @@
-const plugin = function (babel) {
+const beswitchPlugin = function (babel) {
   const { types: t } = babel
 
-  const namespace = typeof window !== 'undefined' ? 'window' : 'global'
+  const pluginNamespace = typeof window !== 'undefined' ? 'window' : 'global'
+  const pluginName = 'beswitch'
+  const pluginObj = `${pluginName}Obj`
+  const pluginVal = `${pluginName}Val`
 
-  const header = babel.transform(`if (typeof ${namespace}.switchcase !== 'function') {
-  ${namespace}.switchcase = cases => defaultCase => key => {
-      const executeIfFunction = f => typeof f === 'function' ? f() : f
-      const switchcaseNoFn = cases => defaultCase => key => key in cases ? cases[key] : defaultCase
-      return executeIfFunction(switchcaseNoFn(cases)(defaultCase)(key))
+  const header = babel.transform(`if (typeof ${pluginNamespace}.${pluginName} !== 'function') {
+  ${pluginNamespace}.${pluginName} = cases => defaultCase => key => {
+      const useFn = fn => typeof fn === 'function' ? fn() : fn
+      const ${pluginName}NoFn = cases => defaultCase => key => key in cases ? cases[key] : defaultCase
+      return useFn(${pluginName}NoFn(cases)(defaultCase)(key))
     }
   }`).ast.program.body[0]
 
   return {
-    name: 'switch-to-functional',
+    name: pluginName,
     visitor: {
       Program: function (path) {
         path.node.body.unshift(header)
@@ -23,7 +26,14 @@ const plugin = function (babel) {
         path.node.cases.forEach((el, idx, arr) => {
           const csqt =
                 el.consequent.length <= 0 && arr[idx + 1]
-                ? [t.returnStatement(t.callExpression(t.memberExpression(t.identifier('switchObj'), arr[idx + 1].test, true), []))]
+                ? [t.returnStatement(
+                  t.callExpression(
+                    t.memberExpression(
+                      t.identifier(pluginObj),
+                      arr[idx + 1].test, true),
+                    []
+                  )
+                )]
                 : el.consequent.filter(el => el.type !== 'BreakStatement')
           if (el.test === null) {
             defaultCase = t.arrowFunctionExpression([], t.blockStatement(csqt))
@@ -38,20 +48,28 @@ const plugin = function (babel) {
         path.replaceWithMultiple(
           [
             t.variableDeclaration(
+              'let',
+              [
+                t.variableDeclarator(
+                  t.identifier(pluginObj)
+                )
+              ]
+            ),
+            t.variableDeclaration(
               'const',
               [
                 t.variableDeclarator(
-                  t.identifier('switchVal'),
+                  t.identifier(pluginVal),
                   t.callExpression(
                     t.callExpression(
                       t.callExpression(
                         t.memberExpression(
-                          t.identifier(namespace),
-                          t.identifier('switchcase')
+                          t.identifier(pluginNamespace),
+                          t.identifier(pluginName)
                         ), [
                           t.assignmentExpression(
                             '=',
-                            t.identifier('switchObj'),
+                            t.identifier(pluginObj),
                             t.objectExpression(cases)
                           )
                         ]
@@ -62,10 +80,12 @@ const plugin = function (babel) {
               ]
             ),
             t.ifStatement(
-              t.identifier('switchVal'),
-              t.returnStatement(
-                t.identifier('switchVal')
-              )
+              t.identifier(pluginVal),
+              t.blockStatement([
+                t.returnStatement(
+                  t.identifier(pluginVal)
+                )
+              ])
             )
           ]
         )
@@ -74,4 +94,4 @@ const plugin = function (babel) {
   }
 }
 
-module.exports = plugin
+module.exports = beswitchPlugin

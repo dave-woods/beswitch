@@ -1,6 +1,21 @@
-# babel-plugin-switch-to-functional
+# babel-plugin-beswitch
 
-Converts a JavaScript switch statement to an equivalent function. Inspired by and based on an [article by Joel Thoms](https://hackernoon.com/rethinking-javascript-eliminate-the-switch-statement-for-better-code-5c81c044716d).
+Babel Plugin which converts a JavaScript switch statement to an equivalent function. Inspired by and based on an [article by Joel Thoms](https://hackernoon.com/rethinking-javascript-eliminate-the-switch-statement-for-better-code-5c81c044716d).
+
+The function currently pollutes the window/global namespace, though this will most likely be changed soon.
+
+## Usage:
+
+Usage is as with any Babel Plugin. For example:
+```javascript
+const babel = require('babel-core')
+const beswitch = require('./babel-plugin-beswitch.js')
+
+const input = getSourceCode() // Source code (as plaintext) to be transformed
+const output = babel.transform(input, {
+	plugins: [beswitch]
+}).code // Transformed code (as plaintext)
+```
 
 ### Example:
 
@@ -26,7 +41,7 @@ switch (key) {
 ```javascript
 const key = 'whatever';
 
-window.switchcase({
+window.beswitch({
   0: () => { doThing() },
   1: () => { doSecondThing() },
   'other': () => { doOtherThing() }
@@ -35,19 +50,19 @@ window.switchcase({
 
 A more complex example, inside a function, with returns and fall-throughs:
 ```javascript
-const before = key => {
+const beswitchedFn = key => {
   let result;
   switch (key) {
     case 0:
     case 1:
-      doThing();
+      doNothing();
       result = 'first';
       break;
     case 'other':
       result = 'second';
       break;
-    case 'also early':
     case 'early':
+    case 'also early':
       return 'quit early'
     case 'log':
       console.log('thing')
@@ -55,29 +70,36 @@ const before = key => {
       result = 'third';
     case 'nothing':
   }
+
+  // other code
+
   return result
 }
 ```
 ...which is transformed into...
 ```javascript
-const after = key => {
-  let result
+const beswitchedFn = key => {
+  let result;
+  let beswitchObj;
 
-  const switchVal = window.switchcase(switchObj = {
-    0: () => { return switchObj[1]() },
+  const beswitchVal = window.beswitch(beswitchObj = {
+    0: () => { return beswitchObj[1]() },
     1: () => {
-      doThing()
+	  doNothing()
       result = 'first'
     },
-	'other': () => { result = 'second' },
-    'also early': () => { return switchObj['early']() },
-    'early': () => { return 'quit early' },
+    'other': () => { result = 'second' },
+    'early': () => { return beswitchObj['also early']() },
+    'also early': () => { return 'quit early' },
     'log': () => { console.log('thing') },
     'nothing': () => {}
   })(() => { result = 'third' })(key);
 
-  if (switchVal)
-    return switchVal;
+  if (beswitchVal) {
+    return beswitchVal
+  }
+
+  // other code
 
   return result
 }
