@@ -32,3 +32,53 @@ window.switchcase({
   'other': () => { doOtherThing() }
 })(() => { doDefaultThing() })(key);
 ```
+
+A more complex example, inside a function, with returns and fall-throughs:
+```javascript
+const before = key => {
+  let result;
+  switch (key) {
+    case 0:
+    case 1:
+      doThing();
+      result = 'first';
+      break;
+    case 'other':
+      result = 'second';
+      break;
+    case 'also early':
+    case 'early':
+      return 'quit early'
+    case 'log':
+      console.log('thing')
+    default:
+      result = 'third';
+    case 'nothing':
+  }
+  return result
+}
+```
+...which is transformed into...
+```javascript
+const after = key => {
+  let result
+
+  const switchVal = window.switchcase(switchObj = {
+    0: () => { return switchObj[1]() },
+    1: () => {
+      doThing()
+      result = 'first'
+    },
+	'other': () => { result = 'second' },
+    'also early': () => { return switchObj['early']() },
+    'early': () => { return 'quit early' },
+    'log': () => { console.log('thing') },
+    'nothing': () => {}
+  })(() => { result = 'third' })(key);
+
+  if (switchVal)
+    return switchVal;
+
+  return result
+}
+```
