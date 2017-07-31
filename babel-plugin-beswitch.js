@@ -6,10 +6,11 @@ const beswitchPlugin = function (babel) {
   const pluginObj = `${pluginName}Obj`
   const pluginVal = `${pluginName}Val`
 
-  const header = babel.transform(`if (typeof ${pluginNamespace}.${pluginName} !== 'function') {
-  ${pluginNamespace}.${pluginName} = cases => defaultCase => key => {
-      const useFn = fn => typeof fn === 'function' ? fn() : fn
-      const ${pluginName}NoFn = cases => defaultCase => key => key in cases ? cases[key] : defaultCase
+  const header = babel.transform(`
+  if (typeof ${pluginNamespace}.${pluginName} !== 'function') {
+    ${pluginNamespace}.${pluginName} = cases => defaultCase => key => {
+      const useFn = fn => (typeof fn === 'function' ? fn() : fn)
+      const ${pluginName}NoFn = cases => defaultCase => key => (key in cases ? cases[key] : defaultCase)
       return useFn(${pluginName}NoFn(cases)(defaultCase)(key))
     }
   }`).ast.program.body[0]
