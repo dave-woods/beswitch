@@ -6,20 +6,114 @@ const beswitchPlugin = function (babel) {
   const pluginObj = `${pluginName}Obj`
   const pluginVal = `${pluginName}Val`
 
-  const header = babel.transform(`
-  if (typeof ${pluginNamespace}.${pluginName} !== 'function') {
-    ${pluginNamespace}.${pluginName} = cases => defaultCase => key => {
-      const useFn = fn => (typeof fn === 'function' ? fn() : fn)
-      const ${pluginName}NoFn = cases => defaultCase => key => (key in cases ? cases[key] : defaultCase)
-      return useFn(${pluginName}NoFn(cases)(defaultCase)(key))
-    }
-  }`).ast.program.body[0]
+  const insert =
+        t.ifStatement(
+          t.binaryExpression(
+            '!==',
+            t.unaryExpression(
+              'typeof',
+              t.memberExpression(
+                t.identifier(pluginNamespace),
+                t.identifier(pluginName)
+              )
+            ),
+            t.stringLiteral('function')
+          ),
+          t.blockStatement([
+            t.expressionStatement(
+              t.assignmentExpression(
+                '=',
+              t.memberExpression(
+                  t.identifier(pluginNamespace),
+                  t.identifier(pluginName)
+              ),
+                t.arrowFunctionExpression(
+                  [t.identifier('cases')],
+                  t.arrowFunctionExpression(
+                    [t.identifier('defaultCase')],
+                    t.arrowFunctionExpression(
+                      [t.identifier('key')],
+                      t.blockStatement([
+                        t.variableDeclaration(
+                          'const',
+                          [
+                            t.variableDeclarator(
+                              t.identifier('useFn'),
+                              t.arrowFunctionExpression(
+                                [t.identifier('fn')],
+                                t.conditionalExpression(
+                                  t.binaryExpression(
+                                    '===',
+                                    t.unaryExpression('typeof', t.identifier('fn')),
+                                    t.stringLiteral('function')
+                                  ),
+                                  t.callExpression(t.identifier('fn'), []),
+                                  t.identifier('fn')
+                                )
+                              )
+                            )
+                          ]
+                        ),
+                        t.variableDeclaration(
+                          'const',
+                          [
+                            t.variableDeclarator(
+                              t.identifier('beswitchNoFn'),
+                              t.arrowFunctionExpression(
+                                [t.identifier('casesNoFn')],
+                                t.arrowFunctionExpression(
+                                  [t.identifier('defaultCaseNoFn')],
+                                  t.arrowFunctionExpression(
+                                    [t.identifier('keyNoFn')],
+                                    t.conditionalExpression(
+                                      t.callExpression(
+                                        t.memberExpression(
+                                          t.identifier('casesNoFn'),
+                                          t.identifier('hasOwnProperty')
+                                        ), [t.identifier('keyNoFn')]
+                                      ),
+                                      t.memberExpression(
+                                        t.identifier('casesNoFn'),
+                                        t.identifier('keyNoFn'),
+                                        true
+                                      ),
+                                      t.identifier('defaultCaseNoFn')
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          ]
+                        ),
+                        t.returnStatement(
+                          t.callExpression(
+                            t.identifier('useFn'),
+                            [t.callExpression(
+                              t.callExpression(
+                                t.callExpression(
+                                  t.identifier('beswitchNoFn'),
+                                  [t.identifier('cases')]
+                                ),
+                                [t.identifier('defaultCase')]),
+                              [t.identifier('key')]
+                              )
+                            ]
+                          )
+                        )
+                      ])
+                    )
+                  )
+                )
+              )
+            )
+          ])
+        )
 
   return {
     name: pluginName,
     visitor: {
       Program: function (path) {
-        path.node.body.unshift(header)
+        path.node.body.unshift(insert)
       },
       SwitchStatement: function (path) {
         const cases = []

@@ -1,25 +1,24 @@
-const fs = require('fs')
+// const fs = require('fs')
 const babel = require('babel-core')
 const beswitch = require('../babel-plugin-beswitch.js')
 const { promisify } = require('util')
-const readFileAsync = promisify(fs.readFile)
+const transform = promisify(babel.transformFile)
+
+const objEquals = obj1 => obj2 => {
+  return Object.keys(obj1).reduce((acc, k) => acc && obj2.hasOwnProperty(k) && ((obj1[k] === obj2[k]) || (typeof obj1[k] === 'object' && typeof obj2[k] === 'object' && objEquals(obj1[k])(obj2[k]))), true)
+}
 
 const test = async function () {
   try {
     const inputFile = process.argv[2]
     const expectedFile = process.argv[3]
 
-    const input = await readFileAsync(inputFile, { encoding: 'utf8' })
-    const expected = await readFileAsync(expectedFile, { encoding: 'utf8' })
-
-    const output = await babel.transform(input.toString(), {
+    const output = await transform(inputFile, {
       plugins: [beswitch]
     })
-
-    console.log(output.code.replace(/;/g, ''))
-    console.log(output.code.replace(/;/g, ' ').replace(/(\s+|$)/g, ' '))
-    console.log(expected.toString().replace(/(\s+|$)/g, ' '))
-    return output.code.replace(/;/g, ' ').replace(/(\s+|$)/g, ' ') === expected.toString().replace(/(\s+|$)/g, ' ')
+    const expected = await transform(expectedFile)
+ 
+    return output.code.replace(/(\s+|$)/g, ' ') === expected.code.replace(/(\s+|$)/g, ' ')
   } catch (err) {
     throw err
   }

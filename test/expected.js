@@ -1,10 +1,12 @@
 if (typeof global.beswitch !== 'function') {
   global.beswitch = cases => defaultCase => key => {
     const useFn = fn => typeof fn === 'function' ? fn() : fn
-    const beswitchNoFn = cases => defaultCase => key => key in cases ? cases[key] : defaultCase
+    const beswitchNoFn = casesNoFn => defaultCaseNoFn => keyNoFn => casesNoFn.hasOwnProperty(keyNoFn) ? casesNoFn[keyNoFn] : defaultCaseNoFn
     return useFn(beswitchNoFn(cases)(defaultCase)(key))
   }
-}const beswitchedFn = key => {
+}
+
+const beswitchedFn = key => {
   let result
   let beswitchObj
 
