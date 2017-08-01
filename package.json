@@ -4,7 +4,7 @@
   "description": "Babel Plugin for converting JavaScript switch to equivalent function",
   "main": "babel-plugin-switch-to-functional.js",
   "scripts": {
-    "test": ""
+    "test": "node test/test.js test/input.js test/expected.js"
   },
   "keywords": [],
   "author": "Dave Woods",
