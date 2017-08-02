@@ -80,9 +80,9 @@ const beswitchedFn = key => {
 ```javascript
 const beswitchedFn = key => {
   let result
-  let beswitchObj
+  let beswitchObj, beswitchVal
 
-  const beswitchVal = window.beswitch(beswitchObj = {
+  beswitchVal = window.beswitch(beswitchObj = {
     0: () => { return beswitchObj[1]() },
     1: () => {
       doNothing()
