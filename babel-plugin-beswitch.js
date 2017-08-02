@@ -5,6 +5,7 @@ const beswitchPlugin = function (babel) {
   const pluginName = 'beswitch'
   const pluginObj = `${pluginName}Obj`
   const pluginVal = `${pluginName}Val`
+  let varsDeclared = false
 
   const insert =
         t.ifStatement(
@@ -118,6 +119,7 @@ const beswitchPlugin = function (babel) {
       SwitchStatement: function (path) {
         const cases = []
         let defaultCase
+        let useReturn = false
         path.node.cases.forEach((el, idx, arr) => {
           const csqt =
                 el.consequent.length <= 0 && arr[idx + 1]
@@ -130,6 +132,7 @@ const beswitchPlugin = function (babel) {
                   )
                 )]
                 : el.consequent.filter(el => el.type !== 'BreakStatement')
+          useReturn = useReturn || csqt.some(el => el.type === 'ReturnStatement')
           if (el.test === null) {
             defaultCase = t.arrowFunctionExpression([], t.blockStatement(csqt))
           } else {
@@ -140,40 +143,50 @@ const beswitchPlugin = function (babel) {
           }
         })
 
-        path.replaceWithMultiple(
-          [
+        const mainFn =
+              t.callExpression(
+                t.callExpression(
+                  t.callExpression(
+                    t.memberExpression(
+                      t.identifier(pluginNamespace),
+                      t.identifier(pluginName)
+                    ), [
+                      t.assignmentExpression(
+                        '=',
+                        t.identifier(pluginObj),
+                        t.objectExpression(cases)
+                      )
+                    ]
+                  ), defaultCase ? [defaultCase] : []
+                ), [path.node.discriminant]
+              )
+
+        if (!varsDeclared) {
+          path.insertBefore(
             t.variableDeclaration(
               'let',
               [
                 t.variableDeclarator(
                   t.identifier(pluginObj)
-                )
-              ]
-            ),
-            t.variableDeclaration(
-              'const',
-              [
+                ),
                 t.variableDeclarator(
-                  t.identifier(pluginVal),
-                  t.callExpression(
-                    t.callExpression(
-                      t.callExpression(
-                        t.memberExpression(
-                          t.identifier(pluginNamespace),
-                          t.identifier(pluginName)
-                        ), [
-                          t.assignmentExpression(
-                            '=',
-                            t.identifier(pluginObj),
-                            t.objectExpression(cases)
-                          )
-                        ]
-                      ), defaultCase ? [defaultCase] : []
-                    ), [path.node.discriminant]
-                  )
+                  t.identifier(pluginVal)
                 )
               ]
-            ),
+            )
+          )
+          varsDeclared = true
+        }
+        path.replaceWith(
+          useReturn ? t.assignmentExpression(
+            '=',
+            t.identifier(pluginVal),
+            mainFn
+          )
+          : mainFn
+        )
+        if (useReturn) {
+          path.insertAfter(
             t.ifStatement(
               t.identifier(pluginVal),
               t.blockStatement([
@@ -182,8 +195,8 @@ const beswitchPlugin = function (babel) {
                 )
               ])
             )
-          ]
-        )
+          )
+        }
       }
     }
   }

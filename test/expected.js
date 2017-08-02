@@ -8,34 +8,28 @@ if (typeof global.beswitch !== 'function') {
 
 const beswitchedFn = key => {
   let result
-  let beswitchObj
+  let beswitchObj, beswitchVal
 
-  const beswitchVal = global.beswitch(beswitchObj = {
+  beswitchVal = global.beswitch(beswitchObj = {
     0: () => {
       return beswitchObj[1]()
     },
-
     1: () => {
       doNothing()
       result = 'first'
     },
-
     'other': () => {
       result = 'second'
     },
-
     'early': () => {
       return beswitchObj['also early']()
     },
-
     'also early': () => {
       return 'quit early'
     },
-
     'log': () => {
       console.log('thing')
     },
-
     'nothing': () => {}
   })(() => {
     result = 'third'
